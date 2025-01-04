@@ -27,7 +27,7 @@ public class Server {
 
     public static synchronized boolean addUserToPool(String username, Socket userSocket){
         boolean isExist = userPool.containsKey(username);
-        if (!username.contains(" ")) {
+        if (!username.contains(" ") && username.length()>1) {
             if (!isExist) {
                 userPool.put(username, userSocket);
                 return true;
@@ -58,9 +58,11 @@ public class Server {
 
     public static synchronized void getOnline(Socket socket){
         Set<String> keySet = userPool.keySet();
+        List<String> online = new ArrayList<>();
         for (String k: keySet){
-            EService.execute(new BackMessage(socket, String.valueOf(k)));
+            online.add(String.valueOf(keySet));
         }
+        EService.execute(new BackMessage(socket,"OU/:" + online.toString()));
     }
 }
 
@@ -93,20 +95,28 @@ class MyServerReader implements Runnable{
 
                 }
                 String str = in.nextLine();
-                System.out.println(str);
+                System.out.println(userName + ":" + str);
                 if (str.equals("exit")) {
                     break;
                 }
                 if (str.contains("PING")) {
                     String[] splitedCommand = str.split(" ");
                     if (splitedCommand.length<3){
-                        Pinger.pingUser(splitedCommand[1],socket);
+                        try {
+                            Pinger.pingUser(splitedCommand[1], socket);
+                        }catch (Exception e){
+                            System.out.println(e);
+                        }
                     }else {
                         Server.EService.execute(new BackMessage(socket,"Incorrect command"));
                     }
                 }
                 if(str.equals("GETONLINE")){
                     Server.getOnline(socket);
+                }
+
+                if(str.equals("iso/")){
+                    Server.EService.execute(new BackMessage(socket, "uso/"));
                 }
 
             }
@@ -116,6 +126,10 @@ class MyServerReader implements Runnable{
                 in.close();
 
 
+        } catch (NoSuchElementException e){
+            System.out.println(e);
+            System.out.println(userName + " refused connection");
+            Server.removeUserFromPool(userName);
         } catch (Exception e){
             System.out.println(e);
         }
@@ -144,15 +158,20 @@ class BackMessage implements Runnable{
     }
 }
 
-class Pinger{
+class Pinger {
 
-    public synchronized static int pingUser(String username, Socket socket){
-        if (Server.isUserExist(username)){
-            Socket uSocket = Server.getUserFromPool(username);
-            Server.EService.execute(new BackMessage(uSocket,"sound"));
-            return 1;
-        } else {
-            Server.EService.execute(new BackMessage(socket,"User does not exist"));
+    public synchronized static int pingUser(String username, Socket socket) {
+        try {
+            if (Server.isUserExist(username)) {
+                Socket uSocket = Server.getUserFromPool(username);
+                Server.EService.execute(new BackMessage(uSocket, "sound"));
+                return 1;
+            } else {
+                Server.EService.execute(new BackMessage(socket, "User does not exist"));
+                return 0;
+            }
+        } catch (Exception e) {
+            System.out.println(e);
             return 0;
         }
     }
