@@ -3,9 +3,7 @@ package DSPinger;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -58,7 +56,12 @@ public class Server {
         userPool.remove(username);
     }
 
-    
+    public static synchronized void getOnline(Socket socket){
+        Set<String> keySet = userPool.keySet();
+        for (String k: keySet){
+            EService.execute(new BackMessage(socket, String.valueOf(k)));
+        }
+    }
 }
 
 class MyServerReader implements Runnable{
@@ -102,6 +105,10 @@ class MyServerReader implements Runnable{
                         Server.EService.execute(new BackMessage(socket,"Incorrect command"));
                     }
                 }
+                if(str.equals("GETONLINE")){
+                    Server.getOnline(socket);
+                }
+
             }
 
                 System.out.println(userName + " refused connection");
