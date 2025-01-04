@@ -53,9 +53,16 @@ public class Server {
             return false;
         }
     }
+
+    public static synchronized void removeUserFromPool(String username){
+        userPool.remove(username);
+    }
+
+    
 }
 
 class MyServerReader implements Runnable{
+    String userName;
     boolean isAuthorizeStage = true;
     Socket socket;
     public MyServerReader(Socket socket){
@@ -73,6 +80,7 @@ class MyServerReader implements Runnable{
                     String authorizedata = in.nextLine();
                     if (Server.addUserToPool(authorizedata,socket)){
                         isAuthorizeStage = false;
+                        userName = authorizedata;
                         Server.EService.execute(new BackMessage(socket,"You have successfully registered"));
                     }else {
                         System.out.println("Username error");
@@ -96,7 +104,8 @@ class MyServerReader implements Runnable{
                 }
             }
 
-                System.out.println("Connection refused");
+                System.out.println(userName + " refused connection");
+                Server.removeUserFromPool(userName);
                 in.close();
 
 
